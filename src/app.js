@@ -9,8 +9,7 @@ app.use(cors({
     credentials:true
 }));
 
-//configration
-
+//configration  middlarware
 app.use(express.json( { limit : "50kb" }));
 
 app.use(express.urlencoded({ extended:  true  , limit: "20kb"}))
