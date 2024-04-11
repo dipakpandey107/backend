@@ -4,6 +4,21 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessAndRefereshTokens = async (userId) => {
+  try {
+    const user = await User.findOne(userId);
+    const accessToken = user.generateAccessToken();
+    const refereshToken = user.generateRefreshToken();
+
+    user.refereshToken = refereshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refereshToken };
+  } catch (error) {
+    throw new ApiError(401, "Something went wrong while generating tokens");
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, username, password } = req.body;
   console.log("email", email);
@@ -64,8 +79,33 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, CreateUser, "user register succesfully"));
 });
 
+const loginUser = asyncHandler(async (req, res) => {
+  // get the date from req.body
 
- const loginUser = asyncHandler(async (req , res)=>{
-      
- })
-export { registerUser  , loginUser};
+  const { email, username, password } = req.body;
+
+  if (!username || !email) {
+    throw new ApiError(400, "Username or Email are missing");
+  }
+
+  if (!email) {
+    throw new ApiError(400, "Email is Required");
+  }
+
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User are Not  Found !!");
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid user Credentials !!");
+  }
+
+   const {accessToken , refereshToken} = await generateAccessAndRefereshTokens(user._id);
+});
+export { registerUser, loginUser, generateAccessAndRefereshTokens };
