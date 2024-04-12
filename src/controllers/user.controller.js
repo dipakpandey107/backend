@@ -107,5 +107,53 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
    const {accessToken , refereshToken} = await generateAccessAndRefereshTokens(user._id);
+
+    
+   const loggedInUser = await User.findById(user._id).
+   select("-password -refreshToken")
+
+   const options = {
+    httpOnly :true,
+    secure:true,
+   }
+
+   return res.status(200)
+   .cookie("accessToken", accessToken , options)
+   .cookie("refreshToken" , refereshToken , options)
+   .json(
+    new ApiResponse(
+      200 ,{
+        user:loggedInUser,accessToken,refereshToken
+      },
+      `Loged in Successfully`
+    )
+   )
+
 });
-export { registerUser, loginUser, generateAccessAndRefereshTokens };
+
+const logoutUser = asyncHandler(async(req, res) => {
+  await User.findByIdAndUpdate(
+      req.user._id,
+      {
+          $unset: {
+              refreshToken: 1 // this removes the field from document
+          }
+      },
+      {
+          new: true
+      }
+  )
+
+  const options = {
+      httpOnly: true,
+      secure: true
+  }
+
+  return res
+  .status(200)
+  .clearCookie("accessToken", options)
+  .clearCookie("refreshToken", options)
+  .json(new ApiResponse(200, {}, "User logged Out"))
+})
+
+export { registerUser, loginUser, generateAccessAndRefereshTokens  , logoutUser};
